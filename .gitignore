@@ -1,0 +1,20 @@
+# venv
+.venv/
+__pycache__/
+*.pyc
+
+# API Key and .env
+.env
+*.env
+
+# ChromaDB local data
+chroma_db/
+*.db
+
+# system files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
