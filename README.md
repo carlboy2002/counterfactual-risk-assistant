@@ -58,25 +58,64 @@ counterfactual_risk_assistant/
 
 ---
 
-## Setup
+## Quickstart for Team Members
 
-### 1. Install Dependencies
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/carlboy2002/counterfactual-risk-assistant.git
+cd counterfactual-risk-assistant
+```
+
+### 2. Create a Virtual Environment
+
+**Windows (Git Bash):**
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+```
+
+**Mac / Linux:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+> ⚠️ Requires **Python 3.10 or 3.11**. If your default Python is older, download 3.11 from [python.org](https://www.python.org/downloads/release/python-3119/) first.
+
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Get an OpenAI API Key
+### 4. Set Your SEC User-Agent
 
-You need an OpenAI API key with access to:
+Open `edgar_utils.py` and update **line 17** with your real name and email:
+
+```python
+USER_AGENT = "Columbia University yourname@columbia.edu"
+```
+
+This is required by SEC EDGAR's access policy. Use your real institutional email.
+
+### 5. Get an OpenAI API Key
+
+You need an OpenAI account with access to:
 - `gpt-4o-mini` (LLM validation)
 - `text-embedding-3-small` (embeddings)
 
-### 3. Run the Application
+Get your key at [platform.openai.com](https://platform.openai.com) → API Keys.
+
+> ⚠️ Never commit your API key to the repo. Enter it only in the Streamlit UI sidebar.
+
+### 6. Run the App
 
 ```bash
 streamlit run app.py
 ```
+
+The app opens at `http://localhost:8501`. Enter your OpenAI API key in the sidebar, then input a ticker and year.
 
 ---
 
@@ -85,8 +124,8 @@ streamlit run app.py
 1. Enter your **OpenAI API Key** in the sidebar
 2. Enter a **Stock Ticker** (e.g., `AAPL`, `MSFT`, `TSLA`)
 3. Select a **Fiscal Year** (e.g., `2023`)
-4. Click **Run Analysis**
-5. Wait ~2-5 minutes for the pipeline to complete
+4. Click **🚀 Run Analysis**
+5. Wait ~2–5 minutes for the pipeline to complete
 6. Review the comparison table and download CSV
 
 ---
@@ -131,4 +170,4 @@ Each identified risk has:
 
 ---
 
-*Data source: SEC EDGAR (public domain). This tool is for research and educational purposes.*
+*Data source: SEC EDGAR (public domain). This tool is for research and educational purposes only.*
