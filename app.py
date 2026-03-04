@@ -14,17 +14,11 @@ import pandas as pd
 import streamlit as st
 
 from edgar_utils import fetch_and_clean_10k
-from rag_engine import (
-    build_vector_store,
-    retrieve_risk_candidates,
-    format_chunks_for_prompt,
-)
+from rag_engine import build_vector_store, retrieve_risk_candidates, format_chunks_for_prompt
 from counterfactual_engine import run_counterfactual_validation
 from comparator import build_comparison_dataframe, compute_mode_summary
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 st.set_page_config(
@@ -34,8 +28,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
@@ -498,9 +491,7 @@ hr {
 /* ── TOOLTIP OVERRIDE ── */
 [data-testid="stTooltipIcon"] svg { color: #a09890 !important; }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ── SIDEBAR ──────────────────────────────────────────────────────
 with st.sidebar:
@@ -520,20 +511,16 @@ with st.sidebar:
 
     st.markdown("## Filing")
 
-    ticker = (
-        st.text_input(
-            "Ticker Symbol",
-            value="AAPL",
-            max_chars=10,
-            help=(
-                "The stock exchange ticker of the company whose 10-K you want to analyze.\n\n"
-                "Examples: AAPL (Apple), MSFT (Microsoft), TSLA (Tesla), JPM (JPMorgan).\n\n"
-                "Must be a valid NYSE or NASDAQ ticker with a 10-K filing on SEC EDGAR."
-            ),
-        )
-        .strip()
-        .upper()
-    )
+    ticker = st.text_input(
+        "Ticker Symbol",
+        value="AAPL",
+        max_chars=10,
+        help=(
+            "The stock exchange ticker of the company whose 10-K you want to analyze.\n\n"
+            "Examples: AAPL (Apple), MSFT (Microsoft), TSLA (Tesla), JPM (JPMorgan).\n\n"
+            "Must be a valid NYSE or NASDAQ ticker with a 10-K filing on SEC EDGAR."
+        ),
+    ).strip().upper()
 
     year = st.number_input(
         "Fiscal Year",
@@ -594,15 +581,12 @@ Only quantified or imminent risks with specific dollar amounts or active legal p
 
 ---
 🔴 **Robust** — all 3 modes agree
-                
 🟡 **Moderate** — 2 modes agree
-                
 ⚪ **Fragile** — aggressive mode only
     """)
 
 # ── MASTHEAD ─────────────────────────────────────────────────────
-st.markdown(
-    """
+st.markdown("""
 <div class="masthead">
     <div class="masthead-eyebrow">⬡ &nbsp; Columbia SIPA · SIPA6674 · Spring 2026</div>
     <div class="masthead-title">Risk<em>Probe</em></div>
@@ -612,9 +596,7 @@ st.markdown(
         against three distinct risk thresholds — refusing to classify when evidence is insufficient.
     </div>
 </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ── RUN BUTTON ────────────────────────────────────────────────────
 st.markdown('<div class="section-label">Analysis</div>', unsafe_allow_html=True)
@@ -647,21 +629,14 @@ if run_analysis:
     os.environ["OPENAI_API_KEY"] = api_key
 
     st.markdown("---")
-    st.markdown(
-        f'<div class="section-label">Pipeline — {ticker} FY{year}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="section-label">Pipeline — {ticker} FY{year}</div>', unsafe_allow_html=True)
 
     progress_bar = st.progress(0)
     log_area = st.empty()
     log_lines = []
 
     def log(msg, kind="run"):
-        css = (
-            "status-done"
-            if kind == "ok"
-            else ("status-error" if kind == "err" else "status-running")
-        )
+        css = "status-done" if kind == "ok" else ("status-error" if kind == "err" else "status-running")
         prefix = "✓" if kind == "ok" else ("✗" if kind == "err" else "›")
         log_lines.append(f'<div class="{css}">{prefix}&nbsp;&nbsp;{msg}</div>')
         log_area.markdown(
@@ -675,10 +650,7 @@ if run_analysis:
     try:
         with st.spinner("Downloading filing from SEC EDGAR..."):
             clean_text, filing_url = fetch_and_clean_10k(ticker, int(year))
-        log(
-            f"Filing acquired — {len(clean_text):,} characters &nbsp;·&nbsp; <a href='{filing_url}' target='_blank' style='color:#8b6440;text-decoration:none;border-bottom:1px solid #d4c8b4'>source ↗</a>",
-            "ok",
-        )
+        log(f"Filing acquired — {len(clean_text):,} characters &nbsp;·&nbsp; <a href='{filing_url}' target='_blank' style='color:#8b6440;text-decoration:none;border-bottom:1px solid #d4c8b4'>source ↗</a>", "ok")
         progress_bar.progress(20)
     except Exception as e:
         log(f"Acquisition failed: {str(e)}", "err")
@@ -702,21 +674,14 @@ if run_analysis:
         st.stop()
 
     # STEP 3
-    log(
-        "Running multi-query RAG retrieval across financial, operational, regulatory categories..."
-    )
+    log("Running multi-query RAG retrieval across financial, operational, regulatory categories...")
     progress_bar.progress(50)
     try:
         with st.spinner("Retrieving candidate evidence chunks..."):
             candidates = retrieve_risk_candidates(vector_store, top_k=top_k)
-            chunks_text = format_chunks_for_prompt(
-                candidates, max_chunks=max_chunks_to_llm
-            )
+            chunks_text = format_chunks_for_prompt(candidates, max_chunks=max_chunks_to_llm)
             num_chunks = min(len(candidates), max_chunks_to_llm)
-        log(
-            f"Retrieved {len(candidates)} unique chunks — top {num_chunks} passed to LLM",
-            "ok",
-        )
+        log(f"Retrieved {len(candidates)} unique chunks — top {num_chunks} passed to LLM", "ok")
         progress_bar.progress(60)
     except Exception as e:
         log(f"Retrieval failed: {str(e)}", "err")
@@ -725,9 +690,7 @@ if run_analysis:
         st.stop()
 
     # STEP 4
-    log(
-        "Running counterfactual validation — Mode A (Aggressive), B (Balanced), C (Conservative)..."
-    )
+    log("Running counterfactual validation — Mode A (Aggressive), B (Balanced), C (Conservative)...")
     progress_bar.progress(65)
     try:
         with st.spinner("LLM counterfactual validation in progress (gpt-4o-mini)..."):
@@ -755,6 +718,14 @@ if run_analysis:
         df = build_comparison_dataframe(mode_results, ticker, int(year))
         progress_bar.progress(100)
         log("Analysis complete.", "ok")
+        # ── Save to session_state so Report button can access after rerun ──
+        st.session_state["df"] = df
+        st.session_state["mode_results"] = mode_results
+        st.session_state["summary"] = summary
+        st.session_state["filing_url"] = filing_url
+        st.session_state["ticker"] = ticker
+        st.session_state["year"] = int(year)
+        st.session_state["candidates"] = candidates
     except Exception as e:
         log(f"Comparison failed: {str(e)}", "err")
         with st.expander("Error details"):
@@ -763,21 +734,15 @@ if run_analysis:
 
     # ── RESULTS ──────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown(
-        f'<div class="section-label">Results — {ticker} FY{year}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="section-label">Results — {ticker} FY{year}</div>', unsafe_allow_html=True)
 
-    total_risks = len(
-        df[df["risk_summary"] != "No risks extracted across any threshold mode."]
-    )
+    total_risks = len(df[df["risk_summary"] != "No risks extracted across any threshold mode."])
     robust = len(df[df["robustness"].str.startswith("🔴 Robust")])
     moderate = len(df[df["robustness"].str.startswith("🟡")])
     fragile = len(df[df["robustness"].str.startswith("⚪")])
     cons_hits = summary.get("Mode C (Conservative)", 0)
 
-    st.markdown(
-        f"""
+    st.markdown(f"""
     <div class="metric-grid">
         <div class="metric-card">
             <span class="val">{total_risks}</span>
@@ -800,69 +765,40 @@ if run_analysis:
             <span class="lbl">Conservative Hits</span>
         </div>
     </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
     # ── TABS ─────────────────────────────────────────────────────
-    tab_all, tab_a, tab_b, tab_c, tab_chunks = st.tabs(
-        [
-            "All Modes",
-            "A · Aggressive",
-            "B · Balanced",
-            "C · Conservative",
-            "Evidence Chunks",
-        ]
-    )
+    tab_all, tab_a, tab_b, tab_c, tab_chunks = st.tabs([
+        "All Modes", "A · Aggressive", "B · Balanced", "C · Conservative", "Evidence Chunks"
+    ])
 
     with tab_all:
-        display_cols = [
-            c
-            for c in [
-                "robustness",
-                "risk_summary",
-                "confidence",
-                "category",
-                "source_chunk_id",
-                "key_evidence",
-                "mode_A_Aggressive",
-                "mode_B_Balanced",
-                "mode_C_Conservative",
-            ]
-            if c in df.columns
-        ]
+        display_cols = [c for c in [
+            "robustness", "risk_summary", "confidence", "category",
+            "source_chunk_id", "key_evidence",
+            "mode_A_Aggressive", "mode_B_Balanced", "mode_C_Conservative",
+        ] if c in df.columns]
         st.dataframe(
             df[display_cols],
             use_container_width=True,
             height=480,
             column_config={
                 "robustness": st.column_config.TextColumn("Robustness", width="medium"),
-                "risk_summary": st.column_config.TextColumn(
-                    "Risk Summary", width="large"
-                ),
+                "risk_summary": st.column_config.TextColumn("Risk Summary", width="large"),
                 "confidence": st.column_config.TextColumn("Conf.", width="small"),
                 "category": st.column_config.TextColumn("Category", width="small"),
-                "source_chunk_id": st.column_config.TextColumn(
-                    "Chunk ID", width="medium"
-                ),
-                "key_evidence": st.column_config.TextColumn(
-                    "Key Evidence", width="large"
-                ),
-                "mode_A_Aggressive": st.column_config.CheckboxColumn(
-                    "A", width="small"
-                ),
+                "source_chunk_id": st.column_config.TextColumn("Chunk ID", width="medium"),
+                "key_evidence": st.column_config.TextColumn("Key Evidence", width="large"),
+                "mode_A_Aggressive": st.column_config.CheckboxColumn("A", width="small"),
                 "mode_B_Balanced": st.column_config.CheckboxColumn("B", width="small"),
-                "mode_C_Conservative": st.column_config.CheckboxColumn(
-                    "C", width="small"
-                ),
+                "mode_C_Conservative": st.column_config.CheckboxColumn("C", width="small"),
             },
         )
 
     def render_mode_tab(mode_letter, mode_name):
         risks = mode_results.get(mode_letter, [])
         if not risks:
-            st.markdown(
-                f"""
+            st.markdown(f"""
             <div class="empty-state">
                 <div class="empty-state-title">Mode {mode_letter} — No Risks Identified</div>
                 <div class="empty-state-sub">
@@ -870,34 +806,25 @@ if run_analysis:
                     The LLM correctly refused to classify insufficient evidence.
                 </div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
             return
 
         for risk in risks:
             conf = risk.get("confidence", "MEDIUM").upper()
-            conf_cls = (
-                f"tag-{conf.lower()}"
-                if conf in ("HIGH", "MEDIUM", "LOW")
-                else "tag-medium"
-            )
+            conf_cls = f"tag-{conf.lower()}" if conf in ("HIGH","MEDIUM","LOW") else "tag-medium"
             cat = risk.get("category", "")
-            st.markdown(
-                f"""
+            st.markdown(f"""
             <div class="risk-card">
-                <div class="risk-card-title">{risk.get("risk_summary", "N/A")}</div>
+                <div class="risk-card-title">{risk.get('risk_summary','N/A')}</div>
                 <div class="risk-meta">
                     <span class="tag {conf_cls}">{conf} confidence</span>
                     <span class="tag tag-category">{cat}</span>
-                    <span class="tag tag-chunk">{risk.get("source_chunk_id", "N/A")}</span>
+                    <span class="tag tag-chunk">{risk.get('source_chunk_id','N/A')}</span>
                 </div>
-                <div class="evidence-block">"{risk.get("key_evidence", "N/A")}"</div>
-                <div class="cf-block"><strong style="font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">Counterfactual Test</strong><br>{risk.get("counterfactual_test", "N/A")}</div>
+                <div class="evidence-block">"{risk.get('key_evidence','N/A')}"</div>
+                <div class="cf-block"><strong style="font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">Counterfactual Test</strong><br>{risk.get('counterfactual_test','N/A')}</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
     with tab_a:
         render_mode_tab("A", "Aggressive")
@@ -914,15 +841,12 @@ if run_analysis:
             unsafe_allow_html=True,
         )
         for c in candidates[:5]:
-            st.markdown(
-                f"""
+            st.markdown(f"""
             <div class="chunk-preview">
-                <div class="chunk-header">{c["chunk_id"]} &nbsp;·&nbsp; {c["category"].upper()} &nbsp;·&nbsp; similarity score {c["retrieval_score"]}</div>
-                <div class="chunk-text">{c["text"][:420]}…</div>
+                <div class="chunk-header">{c['chunk_id']} &nbsp;·&nbsp; {c['category'].upper()} &nbsp;·&nbsp; similarity score {c['retrieval_score']}</div>
+                <div class="chunk-text">{c['text'][:420]}…</div>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
     # ── EXPORT ───────────────────────────────────────────────────
     st.markdown("---")
@@ -954,11 +878,132 @@ if run_analysis:
                 help="Download only risks identified by all three modes — the highest-confidence, most defensible findings.",
             )
 
+# ── REPORT & METHODOLOGY (outside if run_analysis — reads from session_state) ──
+if "df" in st.session_state:
+    _df         = st.session_state["df"]
+    _mode_res   = st.session_state["mode_results"]
+    _summary    = st.session_state["summary"]
+    _filing_url = st.session_state["filing_url"]
+    _ticker     = st.session_state["ticker"]
+    _year       = st.session_state["year"]
+
+    # ── REPORT GENERATION ────────────────────────────────────────
+    st.markdown("---")
+    st.markdown('<div class="section-label">Professional Report</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        "<p style='font-size:0.83rem;color:#5a5550;line-height:1.6;margin-bottom:1rem;'>"
+        "Generate a structured analyst report summarising all findings. "
+        "The LLM synthesises the validation results into professional prose — "
+        "including an executive summary, risk breakdown by robustness tier, and key takeaways."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    gen_report = st.button(
+        "Generate Report →",
+        help="Calls gpt-4o-mini to write a professional analyst-style report based on the validation results above. Takes ~20–40 seconds.",
+    )
+
+    if gen_report:
+        from comparator import generate_report_text
+        from openai import OpenAI
+
+        structured_data = generate_report_text(_df, _mode_res, _ticker, _year, _filing_url)
+
+        report_system = """You are a senior financial risk analyst writing a professional report
+for institutional investors and academic reviewers.
+
+You will be given structured risk validation data extracted from an SEC 10-K filing using a
+RAG-powered counterfactual validation pipeline with three threshold modes (Aggressive, Balanced, Conservative).
+
+Write a polished, professional report with the following sections:
+
+1. EXECUTIVE SUMMARY (2-3 paragraphs)
+   - Company and filing context
+   - Overall risk profile based on the analysis
+   - Key headline findings (focus on Robust risks)
+
+2. METHODOLOGY NOTE (1 short paragraph)
+   - Briefly explain the counterfactual validation approach and what Robust/Moderate/Fragile means
+
+3. RISK ANALYSIS BY TIER
+   - Robust Risks (found in all 3 modes): describe each in 2-3 sentences with the evidence
+   - Moderate Risks: brief paragraph summarising themes
+   - Fragile Risks: one sentence noting these are speculative/hedging language only
+
+4. KEY TAKEAWAYS (3-5 bullet points)
+   - Actionable insights for an investor or analyst
+
+5. LIMITATIONS
+   - One short paragraph on limitations of automated LLM-based risk extraction
+
+Tone: authoritative, precise, formal. Do NOT use bullet points in sections 1-3.
+Do NOT fabricate any risks not present in the data provided."""
+
+        report_user = f"Please write the professional report based on this validated risk data:\n\n{structured_data}"
+
+        with st.spinner("Generating professional report (gpt-4o-mini)..."):
+            try:
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": report_system},
+                        {"role": "user", "content": report_user},
+                    ],
+                    temperature=0.3,
+                    max_tokens=2500,
+                )
+                report_text = response.choices[0].message.content
+
+                st.markdown("""
+                <div style='background:#fff;border:1px solid #d4cfc7;border-radius:3px;
+                     border-left:3px solid #8b6440;padding:2rem 2.5rem;margin-top:1rem;'>
+                """, unsafe_allow_html=True)
+
+                for line in report_text.split("\n"):
+                    stripped = line.strip()
+                    if not stripped:
+                        st.markdown("<br>", unsafe_allow_html=True)
+                    elif any(stripped.startswith(f"{n}.") for n in range(1, 6)) and len(stripped) < 80:
+                        st.markdown(
+                            f"<p style='font-family:IBM Plex Mono,monospace;font-size:0.65rem;"
+                            f"letter-spacing:0.15em;text-transform:uppercase;color:#8b6440;"
+                            f"margin:1.5rem 0 0.5rem 0;border-top:1px solid #ede9e2;"
+                            f"padding-top:1rem;'>{stripped}</p>",
+                            unsafe_allow_html=True,
+                        )
+                    elif stripped.startswith("•") or stripped.startswith("-"):
+                        st.markdown(
+                            f"<p style='font-size:0.83rem;color:#2a2620;"
+                            f"margin:0.3rem 0 0.3rem 1rem;'>{stripped}</p>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            f"<p style='font-size:0.85rem;color:#2a2620;margin:0.4rem 0;'>{stripped}</p>",
+                            unsafe_allow_html=True,
+                        )
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                st.download_button(
+                    "Download Report (.txt)",
+                    data=report_text,
+                    file_name=f"{_ticker}_FY{_year}_risk_report.txt",
+                    mime="text/plain",
+                    help="Download the full generated report as a plain text file.",
+                )
+
+            except Exception as e:
+                st.error(f"Report generation failed: {str(e)}")
+
     # ── METHODOLOGY ──────────────────────────────────────────────
     st.markdown("---")
     with st.expander("Methodology & Academic Notes"):
         st.markdown(f"""
-**Document scope** — The entire {ticker} FY{year} 10-K was ingested including MD&A, Legal Proceedings, Financial Statements, and Notes to Financials — not limited to Item 1A.
+**Document scope** — The entire {_ticker} FY{_year} 10-K was ingested including MD&A, Legal Proceedings, Financial Statements, and Notes to Financials — not limited to Item 1A.
 
 **RAG pipeline** — The filing was split into ~1,000-character overlapping chunks using `RecursiveCharacterTextSplitter`. Each chunk was embedded with OpenAI's `text-embedding-3-small` and stored in ChromaDB with a deterministic `chunk_id`. Retrieval used 12 semantically diverse queries across financial, operational, and regulatory risk categories.
 
@@ -968,8 +1013,7 @@ if run_analysis:
         """)
 
 # ── FOOTER ───────────────────────────────────────────────────────
-st.markdown(
-    """
+st.markdown("""
 <div style="margin-top:4rem; padding-top:1.25rem; border-top:1px solid #d4cfc7;
      display:flex; justify-content:space-between; align-items:center;">
     <span style="font-family:'IBM Plex Mono',monospace; font-size:0.58rem; color:#b0aba4; letter-spacing:0.15em;">
@@ -979,6 +1023,6 @@ st.markdown(
         LangChain · ChromaDB · OpenAI · SEC EDGAR
     </span>
 </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
+
+
