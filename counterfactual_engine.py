@@ -64,7 +64,9 @@ OUTPUT FORMAT (strict JSON array, no other text):
 If NO chunks meet the threshold, return EXACTLY: []
 """
 
-MODE_A_SYSTEM = _SYSTEM_PREAMBLE.format(mode_name="AGGRESSIVE") + """
+MODE_A_SYSTEM = (
+    _SYSTEM_PREAMBLE.format(mode_name="AGGRESSIVE")
+    + """
 ─── ACTIVE MODE: A — AGGRESSIVE THRESHOLD ───
 Under this threshold, you should flag a text chunk as a risk if it contains ANY of:
 - Speculative or forward-looking language (e.g., "may", "could", "might", "we cannot 
@@ -84,8 +86,11 @@ Confidence calibration:
 Remember: Even if a risk is labeled "not material" in the text, classify it under 
 Aggressive mode if the risk language is present.
 """
+)
 
-MODE_B_SYSTEM = _SYSTEM_PREAMBLE.format(mode_name="BALANCED") + """
+MODE_B_SYSTEM = (
+    _SYSTEM_PREAMBLE.format(mode_name="BALANCED")
+    + """
 ─── ACTIVE MODE: B — BALANCED THRESHOLD ───
 Under this threshold, classify a chunk as a risk ONLY if it contains:
 - Explicit risk language: "risk", "uncertainty", "exposure", "vulnerability", 
@@ -105,8 +110,11 @@ Confidence calibration:
 - MEDIUM: Risk language present but impact is vague or minor
 - LOW: Borderline — risk term used but context is minimal
 """
+)
 
-MODE_C_SYSTEM = _SYSTEM_PREAMBLE.format(mode_name="CONSERVATIVE") + """
+MODE_C_SYSTEM = (
+    _SYSTEM_PREAMBLE.format(mode_name="CONSERVATIVE")
+    + """
 ─── ACTIVE MODE: C — CONSERVATIVE THRESHOLD ───
 Under this threshold, classify a chunk as a risk ONLY if it meets ALL of:
 - The risk is QUANTIFIED (specific dollar amounts, percentages, timeframes) OR 
@@ -128,6 +136,7 @@ Confidence calibration:
 - LOW: Conservative mode should very rarely use LOW — if evidence only warrants LOW, 
   return [] instead
 """
+)
 
 MODE_USER_TEMPLATE = """
 You are evaluating the following {num_chunks} text chunks retrieved from the 10-K 
@@ -151,6 +160,7 @@ Respond with ONLY a valid JSON array. No explanations, no markdown, no preamble.
 # LLM CALL WITH RETRY
 # ─────────────────────────────────────────────────────────────────
 
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 def _call_openai(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
     """Make an OpenAI chat completion call with retry logic."""
@@ -160,7 +170,7 @@ def _call_openai(client: OpenAI, system_prompt: str, user_prompt: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.1,   # Low temperature for consistent, factual extraction
+        temperature=0.1,  # Low temperature for consistent, factual extraction
         max_tokens=4096,
         response_format={"type": "json_object"},  # Force JSON output
     )
@@ -193,7 +203,9 @@ def _parse_llm_json_output(raw_output: str, mode: str) -> list[dict[str, Any]]:
                 if "risk_summary" in parsed:
                     parsed = [parsed]
                 else:
-                    logger.warning(f"Mode {mode}: Unexpected dict structure: {list(parsed.keys())}")
+                    logger.warning(
+                        f"Mode {mode}: Unexpected dict structure: {list(parsed.keys())}"
+                    )
                     return []
 
         if not isinstance(parsed, list):
@@ -238,6 +250,7 @@ def run_counterfactual_validation(
     ticker: str,
     year: int,
     openai_api_key: str,
+    adversarial_injection: str = "",
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Run the LLM Counterfactual Validator across all three threshold modes.
@@ -269,8 +282,16 @@ def run_counterfactual_validation(
         chunks_text=chunks_text,
     )
 
+    if adversarial_injection.strip():
+        logger.warning(f"⚠️ INJECTING ADVERSARIAL PROMPT!")
+        user_prompt += (
+            f"\n\n[SYSTEM OVERRIDE / URGENT USER INSTRUCTION]:\n{adversarial_injection}"
+        )
+
     for mode_letter, mode_config in MODES.items():
-        logger.info(f"Running counterfactual validation — Mode {mode_letter} ({mode_config['name']})")
+        logger.info(
+            f"Running counterfactual validation — Mode {mode_letter} ({mode_config['name']})"
+        )
         try:
             raw_output = _call_openai(client, mode_config["system"], user_prompt)
             risks = _parse_llm_json_output(raw_output, mode_letter)
