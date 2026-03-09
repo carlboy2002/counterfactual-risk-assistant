@@ -129,6 +129,24 @@ The app opens at `http://localhost:8501`. Enter your OpenAI API key in the sideb
 6. Review the comparison table and download CSV
 
 ---
+## Recommended Test Cases (Historical Crises)
+
+To fully experience the system's counterfactual validation and see how it handles varying degrees of corporate distress, we highly recommend testing the following historical 10-K filings. These 10 cases were used in our qualitative evaluation to prove the system's robustness:
+
+| Company | Ticker | Year | Historical Context & What to Look For |
+| :--- | :--- | :--- | :--- |
+| **Carnival Corp.** | `CCL` | 2020 | **Pandemic & Liquidity:** Evaluates the system's ability to extract extreme going-concern and liquidity risks triggered by the global halt of cruise operations. |
+| **Boeing** | `BA` | 2019 | **Regulatory Crisis:** Focuses on the 737 MAX groundings. The system should identify strong regulatory probes (FAA/DOJ) and severe production halt risks. |
+| **Nvidia** | `NVDA` | 2023 | **Geopolitics:** Tests the extraction of supply chain vulnerabilities and material risks related to newly imposed U.S. export controls on AI chips to China. |
+| **Meta** | `META` | 2022 | **Business Model Shift:** Looks for risks surrounding Apple's ATT privacy changes impacting ad revenue, alongside massive capital expenditures on the Metaverse. |
+| **GameStop** | `GME` | 2021 | **Extreme Volatility:** Tests how the LLM handles the "meme stock" short squeeze, specifically looking for risks detailing extreme stock price fluctuations detached from fundamentals. |
+| **ExxonMobil** | `XOM` | 2020 | **Macro Black Swan:** Evaluates the extraction of financial risks related to the historic crash in crude oil prices and subsequent massive asset impairments. |
+| **Apple** | `AAPL` | 2024 | **Antitrust & Legal:** Focuses on the "Legal Proceedings" sections to identify risks related to EU antitrust fines, DOJ lawsuits, and App Store policy shifts. |
+| **Pfizer** | `PFE` | 2023 | **Revenue Cliff:** Tests the system's ability to identify financial risks associated with the abrupt post-pandemic decline in COVID-19 vaccine and therapeutic revenues. |
+| **Tesla** | `TSLA` | 2023 | **Margin Pressures:** Looks for risks related to aggressive vehicle price cuts compressing gross margins, alongside safety investigations into its FSD software. |
+| **Johnson & Johnson** | `JNJ` | 2023 | **Control Group:** A stable, mature blue-chip company. Use this to observe how the *Conservative* mode aggressively filters out boilerplate text compared to the crisis companies above. |
+
+---
 
 ## The Three Threshold Modes
 
